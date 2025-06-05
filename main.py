@@ -6,7 +6,8 @@ import math
 import asyncio
 import requests
 import aiohttp
-import random 
+import random
+import json  # <-- Required for parsing JSON safely
 
 from dotenv import load_dotenv
 from telethon import TelegramClient, events
@@ -29,13 +30,21 @@ GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # --- Handle dynamic Google credentials from environment variable --- #
-google_json = os.getenv("GOOGLE_SHEET_JSON")
+google_json = os.getenv("GOOGLE_SHEET_JSON") or os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
 if google_json:
-    with open("credentials.json", "w") as f:
-        f.write(google_json)
-    CREDENTIALS_PATH = "credentials.json"
+    try:
+        # Parse to ensure it's valid JSON
+        parsed_credentials = json.loads(google_json)
+
+        # Write back to file in proper JSON format
+        with open("credentials.json", "w") as f:
+            json.dump(parsed_credentials, f)
+
+        CREDENTIALS_PATH = "credentials.json"
+    except json.JSONDecodeError as e:
+        raise ValueError("The GOOGLE_SHEET_JSON environment variable contains invalid JSON.") from e
 else:
-    raise ValueError("Missing GOOGLE_SHEET_JSON environment variable")
+    raise ValueError("Missing GOOGLE_SHEET_JSON or GOOGLE_SERVICE_ACCOUNT_JSON environment variable")
 
 # --- Setup logging --- #
 logging.basicConfig(level=logging.INFO)
