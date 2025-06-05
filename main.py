@@ -65,7 +65,7 @@ gs = gspread.authorize(creds)
 sheet = gs.open_by_key(GOOGLE_SHEET_ID).sheet1
 
 # --- Telethon client --- #
-client = TelegramClient("session_name", API_ID, API_HASH)
+client = TelegramClient("my_session", API_ID, API_HASH)
 
 # --- Keep-Alive Web Server for Replit + UptimeRobot ---
 app = Flask('')
