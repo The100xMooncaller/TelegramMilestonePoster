@@ -6,8 +6,7 @@ import math
 import asyncio
 import requests
 import aiohttp
-import random
-import json  # <-- Required for parsing JSON safely
+import random 
 
 from dotenv import load_dotenv
 from telethon import TelegramClient, events
@@ -27,18 +26,8 @@ API_HASH = os.getenv("API_HASH")
 PHONE_NUMBER = os.getenv("PHONE_NUMBER")
 GROUP_ID = int(os.getenv("PRIVATE_GROUP_ID"))
 GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+CREDENTIALS_PATH = os.getenv("GOOGLE_SHEET_CREDENTIALS")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
-# --- Handle dynamic Google credentials from environment variable --- #
-import json  # <-- Make sure this is at the top of your file
-
-google_json = os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"]
-parsed_credentials = json.loads(google_json)
-
-with open("credentials.json", "w") as f:
-    json.dump(parsed_credentials, f)
-
-CREDENTIALS_PATH = "credentials.json"
 
 # --- Setup logging --- #
 logging.basicConfig(level=logging.INFO)
@@ -268,20 +257,21 @@ def get_current_marketcap(contract_address):
     try:
         now = time.time()
 
-        # Return cached result if it's less than 60 seconds old
+        # Return cached result if it's less than 5 minutes old
         if contract_address in marketcap_cache:
             cached_value, cached_time = marketcap_cache[contract_address]
             if now - cached_time < 60:  
                 logger.debug(f"⏪ Using cached marketcap for {contract_address}")
                 return cached_value
 
+        # Fetch fresh data from DexScreener
         url = f"{DEX_API_BASE}{contract_address}"
         res = requests.get(url, timeout=10)
-
+        
         if res.status_code != 200:
             logging.warning(f"DexScreener API error for {contract_address}: HTTP {res.status_code}")
             return 0
-
+            
         data = res.json()
         pairs = data.get("pairs", [])
         if not pairs:
@@ -289,13 +279,19 @@ def get_current_marketcap(contract_address):
             return 0
 
         valid_pairs = [p for p in pairs if p.get("dexId", "") in PREFERRED_DEXES]
-        sorted_pairs = sorted(valid_pairs or pairs, key=lambda x: x.get("updatedAt", 0), reverse=True)
-        selected_pair = sorted_pairs[0]
+
+        if valid_pairs:
+            sorted_pairs = sorted(valid_pairs, key=lambda x: x.get("updatedAt", 0), reverse=True)
+            selected_pair = sorted_pairs[0]
+        else:
+            logging.warning(f"No valid pairs on preferred DEXes for {contract_address}. Found DEXes: {[p.get('dexId') for p in pairs]}")
+            sorted_pairs = sorted(pairs, key=lambda x: x.get("updatedAt", 0), reverse=True)
+            selected_pair = sorted_pairs[0]
 
         mc = selected_pair.get("marketCap") or selected_pair.get("fdv")
-        marketcap = float(mc) if mc else 0
+        return float(mc) if mc else 0
 
-        # ✅ Cache result
+        # Cache the result
         marketcap_cache[contract_address] = (marketcap, now)
 
         return marketcap
@@ -303,7 +299,6 @@ def get_current_marketcap(contract_address):
     except Exception as e:
         logging.warning(f"Error fetching marketcap for {contract_address}: {e}")
         return 0
-
 
 # --- Update Sheet Row Safely with Rate Limiting --- #
 async def update_milestone_row(index, new_x, new_ath, new_posted_x=None):
