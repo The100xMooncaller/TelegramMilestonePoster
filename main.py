@@ -265,21 +265,20 @@ def get_current_marketcap(contract_address):
     try:
         now = time.time()
 
-        # Return cached result if it's less than 5 minutes old
+        # Return cached result if it's less than 60 seconds old
         if contract_address in marketcap_cache:
             cached_value, cached_time = marketcap_cache[contract_address]
             if now - cached_time < 60:  
                 logger.debug(f"⏪ Using cached marketcap for {contract_address}")
                 return cached_value
 
-        # Fetch fresh data from DexScreener
         url = f"{DEX_API_BASE}{contract_address}"
         res = requests.get(url, timeout=10)
-        
+
         if res.status_code != 200:
             logging.warning(f"DexScreener API error for {contract_address}: HTTP {res.status_code}")
             return 0
-            
+
         data = res.json()
         pairs = data.get("pairs", [])
         if not pairs:
@@ -287,19 +286,13 @@ def get_current_marketcap(contract_address):
             return 0
 
         valid_pairs = [p for p in pairs if p.get("dexId", "") in PREFERRED_DEXES]
-
-        if valid_pairs:
-            sorted_pairs = sorted(valid_pairs, key=lambda x: x.get("updatedAt", 0), reverse=True)
-            selected_pair = sorted_pairs[0]
-        else:
-            logging.warning(f"No valid pairs on preferred DEXes for {contract_address}. Found DEXes: {[p.get('dexId') for p in pairs]}")
-            sorted_pairs = sorted(pairs, key=lambda x: x.get("updatedAt", 0), reverse=True)
-            selected_pair = sorted_pairs[0]
+        sorted_pairs = sorted(valid_pairs or pairs, key=lambda x: x.get("updatedAt", 0), reverse=True)
+        selected_pair = sorted_pairs[0]
 
         mc = selected_pair.get("marketCap") or selected_pair.get("fdv")
-        return float(mc) if mc else 0
+        marketcap = float(mc) if mc else 0
 
-        # Cache the result
+        # ✅ Cache result
         marketcap_cache[contract_address] = (marketcap, now)
 
         return marketcap
@@ -307,6 +300,7 @@ def get_current_marketcap(contract_address):
     except Exception as e:
         logging.warning(f"Error fetching marketcap for {contract_address}: {e}")
         return 0
+
 
 # --- Update Sheet Row Safely with Rate Limiting --- #
 async def update_milestone_row(index, new_x, new_ath, new_posted_x=None):
