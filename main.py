@@ -451,7 +451,10 @@ async def handle_message(event):
 
 # --- Run the client --- #
 async def main():
-    await client.start()
+    await client.connect()
+if not await client.is_user_authorized():
+    print("Client is not authorized. Upload the session file.")
+    exit(1)
     client.loop.create_task(monitor_milestones())
     logger.info("🤖 Bot is running...")
     await client.run_until_disconnected()
