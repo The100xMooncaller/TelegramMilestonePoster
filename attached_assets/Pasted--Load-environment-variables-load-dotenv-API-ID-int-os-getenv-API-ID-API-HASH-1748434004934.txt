@@ -1,23 +1,3 @@
-import os
-import re
-import logging
-import time
-import math
-import asyncio
-import requests
-import aiohttp
-import random 
-
-from dotenv import load_dotenv
-from telethon import TelegramClient, events
-from functools import partial
-from io import BytesIO
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
-import gspread
-from google.oauth2.service_account import Credentials
-from flask import Flask
-from threading import Thread
-
 # --- Load environment variables --- #
 load_dotenv()
 
@@ -29,16 +9,16 @@ GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
 CREDENTIALS_PATH = os.getenv("GOOGLE_SHEET_CREDENTIALS")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-PUBLIC_CHANNEL = "@solana100xcall"
-DEX_API_BASE = "https://api.dexscreener.com/latest/dex/tokens/"
-PREFERRED_DEXES = ["raydium", "pumpfun", "bonkswap", "orca", "lifinity", "meteora"]  
-
 # --- Setup logging --- #
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize bot
 bot = Bot(token=BOT_TOKEN)
+
+PUBLIC_CHANNEL = "@solana100xcall"
+DEX_API_BASE = "https://api.dexscreener.com/latest/dex/tokens/"
+PREFERRED_DEXES = ["raydium", "pumpfun", "bonkswap", "orca", "lifinity", "meteora"]  
 
 ROTATING_LINK_CAPTIONS = [
     "🤑 300 Killer Wallets. Copy → Win.",
@@ -51,9 +31,6 @@ ROTATING_LINK_CAPTIONS = [
     "🎯 Wallets that never run out. Yours now.",
     "📈 Print like a pro. We have the file."
 ]
-
-# Milestone tracking: stores last ATH per token
-milestone_db = {}  # Replace with persistent storage in production
 
 # Cache for marketcap values (address → (value, timestamp))
 marketcap_cache = {}
@@ -88,7 +65,7 @@ sent_milestones = set()
 # Send regular text message with inline buttons
 async def send_bot_message(text, buttons):
     loop = asyncio.get_event_loop()
-    gif_path = get_milestone_gif_path(ath_x)
+    reply_markup = InlineKeyboardMarkup(buttons)
 
     try:
         logger.info(f"Sending message to chat_id: {PUBLIC_CHANNEL}")
@@ -115,11 +92,7 @@ def get_milestone_gif_path(x_value):
     return f"media/X{x_floor}+.mp4"  # Example: media/X3+.mp4
 
 # Send milestone GIF + caption + button
-async def send_bot_milestone_message(symbol, call_mc, ath_mc, chain, ath_x):
-    # Determine if this is an update
-    previous_ath = milestone_db.get(symbol)
-    is_update = previous_ath is not None and ath_x > previous_ath
-
+async def send_bot_milestone_message(symbol, call_mc, ath_mc, chain, ath_x, is_update=False):
     loop = asyncio.get_event_loop()
     gif_path = get_milestone_gif_path(ath_x)
 
@@ -130,62 +103,56 @@ async def send_bot_milestone_message(symbol, call_mc, ath_mc, chain, ath_x):
     reply_markup = InlineKeyboardMarkup(buttons)
 
     rotating_link_text = random.choice(ROTATING_LINK_CAPTIONS)
-    headline = f"${symbol} HIT 💎{ath_x:.1f}X💎 AFTER CALL"
 
-    # Build caption with proper line breaks
-    caption_parts = [
-        headline,
-        f"🟢 Bot Called It at: <b>{abbreviate_number(int(call_mc))}</b> MC\n"
-        f"📈 ATH: <b>{abbreviate_number(int(ath_mc))}</b> | Chain: {chain.capitalize()}",
-        "<blockquote>🔓 Get Access to Solana's #1 Memecoin Signals Bot & Catch the Next 10x–100x Before the Crowd 💸</blockquote>",
-        f"<a href='https://t.me/SmartWalletsSOLBot'>{rotating_link_text}</a>"
-    ]
-    if is_update:
-        caption_parts.insert(0, "🔥UPDATE🔥")
+    update_tag = "\ud83d\udd25UPDATE\ud83d\udd25\n" if is_update else ""
+    
+    caption = (
+            f"{update_tag}${symbol} HIT \ud83d\udc8e{ath_x:.1f}X\ud83d\udc8e AFTER CALL\n\n"
+            f"\ud83d\udfe2 Bot Called It at: <b>{abbreviate_number(int(call_mc))}</b> MC\n"
+            f"\ud83d\udcc8 ATH: <b>{abbreviate_number(int(ath_mc))}</b> | Chain: {chain.capitalize()}\n\n"
+            f"<blockquote>\ud83d\udd13 Get Access to Solana's #1 Memecoin Signals Bot & Catch the Next 10x–100x Before the Crowd \ud83d\udcb8</blockquote>\n\n"
+            f"<a href='https://t.me/SmartWalletsSOLBot'>{rotating_link_text}</a>"
+        )
 
-    caption = "\n\n".join(caption_parts)
+    gif_path = get_milestone_gif_path(ath_x)
 
     try:
         if not os.path.exists(gif_path):
-            logger.warning(f"⚠️ Animation not found for {symbol} ({ath_x:.1f}x). Sending fallback text message.")
+            logger.warning(f"\u26a0\ufe0f Animation not found for {symbol} ({ath_x:.1f}x). Sending fallback text message.")
 
-            # Build fallback message with same formatting
-            fallback_parts = [
-                headline,
-                f"🟢 Bot Called It at: <b>{abbreviate_number(int(call_mc))}</b> MC",
-                f"📈 ATH: <b>{abbreviate_number(int(ath_mc))}</b> | Chain: {chain.capitalize()}",
-                "<blockquote>🔓 Get Access to Solana's #1 Memecoin Signals Bot & Catch the Next 10x–100x Before the Crowd 💸</blockquote>",
-                "<a href='https://t.me/SmartWalletsSOLBot'>📊 ADD 300 alpha wallets to your Solana tracker</a>"
-            ]
-            if is_update:
-                fallback_parts.insert(0, "🔥UPDATE🔥")
+            message = (
+                f"{update_tag}${symbol} HIT \ud83d\udc8e{ath_x:.1f}X\ud83d\udc8e AFTER CALL\n\n"
+                f"\ud83d\udfe2 Bot Called It at: <b>{abbreviate_number(int(call_mc))}</b> MC\n"
+                f"\ud83d\udcc8 ATH: <b>{abbreviate_number(int(ath_mc))}</b> | Chain: {chain.capitalize()}\n\n"
+                f"<blockquote>\ud83d\udd13 Get Access to Solana's #1 Memecoin Signals Bot & Catch the Next 10x–100x Before the Crowd \ud83d\udcb8</blockquote>\n\n"
+                f"<a href='https://t.me/SmartWalletsSOLBot'>\ud83d\udcca ADD 300 alpha wallets to your Solana tracker</a>"
+            )
 
-            fallback_message = "\n\n".join(fallback_parts)
-            await send_bot_message(fallback_message, buttons)
-            milestone_db[symbol] = ath_x  # Save milestone even if fallback
+            fallback_buttons = [[
+                InlineKeyboardButton("📡 Get Premium Signals", url="https://t.me/onlysubsbot?start=bXeGHtzWUbduBASZemGJf")
+            ]]
+
+            await send_bot_message(message, fallback_buttons)
             return
 
-        # Send animation
+        with open(gif_path, "rb") as gif_file:
+            gif_bytes = gif_file.read()
+
         await loop.run_in_executor(
             None,
             partial(
                 bot.send_animation,
                 chat_id=PUBLIC_CHANNEL,
-                animation=open(gif_path, "rb"),
+                animation=open(gif_path, "rb"),  # ✅ Direct file path
                 caption=caption,
                 parse_mode="HTML",
                 reply_markup=reply_markup
             )
         )
-        logger.info(f"✅ Milestone animation sent for {symbol} ({ath_x}x) - Path: {gif_path}")
-
-        # Save new milestone
-        milestone_db[symbol] = ath_x
-
+        logger.info(f"✅ Milestone animation sent for {symbol} - Path: {gif_path}")
     except Exception as e:
         logger.error(f"❌ Failed to send milestone animation for {symbol} ({ath_x:.1f}x): {e}")
         logger.warning("⚠️ Falling back to text message.")
-
 
 # --- Helper function to extract token info --- #
 def normalize_call_mc(mc_str):
@@ -251,22 +218,16 @@ def update_sheet(address, symbol, chain, call_mc):
 def fetch_tokens():
     raw_rows = sheet.get_all_records()
     tokens = []
-
     for row in raw_rows:
-        try:
-            token = {
-                "contract_address": row.get("Token Address", "").strip(),
-                "symbol": row.get("Token Symbol", "").strip(),
-                "chain": row.get("Chain", "").strip(),
-                "mc_call": float(str(row.get("Call MC (USD)", "0")).replace(",", "").replace("$", "")),
-                "last_x": float(str(row.get("Last X", "1.0")).strip()),
-                "ath_mc": float(str(row.get("ATH MC", "0")).strip()),
-                "last_posted_x": float(str(row.get("Last Posted X", "0")).strip()),
-            }
-            tokens.append(token)
-        except Exception as e:
-            logger.warning(f"⚠️ Skipping malformed token row: {e}")
-
+        token = {
+            "contract_address": row.get("Token Address", "").strip(),
+            "symbol": row.get("Token Symbol", "").strip(),
+            "chain": row.get("Chain", "").strip(),
+            "mc_call": row.get("Call MC (USD)", 0),
+            "last_x": row.get("Last X", "1.0").strip(),
+            "ath_mc": row.get("ATH MC", "0").strip(),
+        }
+        tokens.append(token)
     return tokens
 
 # --- Fetch Current MarketCap from DexScreener API --- #
@@ -348,17 +309,16 @@ async def update_milestone_row(index, new_x, new_ath, new_posted_x=None):
 
         if updates_needed:
             logger.info(f"📝 Updated row {row_number}: Last X = {new_x_norm}, ATH MC = {new_ath_norm}, Last Posted X = {new_posted_x_norm}")
-            await asyncio.sleep(0.8)  # Rate limit safety
+            await asyncio.sleep(0.5)  # Rate limit safety
         else:
             logger.debug(f"⏸ No update needed for row {row_number}")
 
     except Exception as e:
         logger.error(f"❌ Failed to update row {index + 2}: {e}")
 
-# --- Milestone Monitor (Dynamic) --- #
+# --- Milestone Monitor --- #
 async def monitor_milestones():
     logger.info("📡 Starting milestone monitor...")
-
     while True:
         try:
             logger.info("🔄 Checking tokens for milestone updates...")
@@ -379,54 +339,39 @@ async def monitor_milestones():
                     if not address or call_mc == 0:
                         continue
 
-                    await asyncio.sleep(0.8)  # Rate limit delay
+                    await asyncio.sleep(0.8)  # Delay to reduce API rate (1-2s per request is safe)
                     current_mc = get_current_marketcap(address)
                     logger.info(f"Processing {symbol}: call_mc={call_mc}, current_mc={current_mc}, last_x={last_x}, ath_mc={ath_mc}")
 
                     if current_mc == 0:
                         continue
-
-                    # Update ATH market cap if new high
+      
                     if current_mc > ath_mc:
                         ath_mc = current_mc
                         await update_milestone_row(i, str(last_x), str(int(ath_mc)), None)
                         logger.info(f"📈 New ATH for {symbol}: ${int(ath_mc):,}")
 
-                    ath_x = round(ath_mc / call_mc, 2)
-
-                    # If this ATH X is higher than the last posted one, it's a new milestone
                     ath_x = ath_mc / call_mc
-                    rounded_ath_x = round(ath_x, 1)
-                    rounded_last_posted_x = round(last_posted_x, 1)
+                    milestone = next((m for m in MILESTONES if ath_x >= m and m > last_posted_x), None)
 
-                    if rounded_ath_x >= 1.5 and rounded_ath_x > rounded_last_posted_x:
+                    milestone_key = f"{symbol}-{milestone}"
+
+                    if milestone and milestone > last_posted_x:
                         try:
-                            await send_bot_milestone_message(
-                                symbol=symbol,
-                                call_mc=call_mc,
-                                ath_mc=ath_mc,
-                                chain=chain,
-                                ath_x=rounded_ath_x
-                            )
-                            await update_milestone_row(
-                                index=i,
-                                new_x=rounded_ath_x,
-                                new_ath=int(ath_mc),
-                                new_posted_x=rounded_ath_x
-                            )
-                            logger.info(f"📢 Posted {'🔥UPDATE🔥' if last_posted_x > 0 else 'NEW'} milestone for {symbol}: {rounded_ath_x}x")
+                            await send_bot_milestone_message(symbol, call_mc, ath_mc, chain, ath_x)
+                            await update_milestone_row(i, str(milestone), str(int(ath_mc)), str(milestone))
+                            logger.info(f"📢 Posted new milestone for {symbol}: {milestone}x")
                         except Exception as e:
                             logger.error(f"❌ Failed to post milestone for {symbol}: {e}")
 
                 except Exception as e:
-                    logger.error(f"⚠️ Error processing row {i + 2}: {e}")
+                    logger.error(f"Error processing row {i + 2}: {e}")
 
         except Exception as e:
             logger.error(f"❌ Error during milestone check: {e}")
 
         logger.info("🔁 Sleeping 5 minutes before next check...")
-        await asyncio.sleep(300)  # 5 minutes pause
-
+        await asyncio.sleep(300)  # Check every 5 minutes
 
 # --- Message handler --- #
 @client.on(events.NewMessage(chats=GROUP_ID))
