@@ -30,21 +30,15 @@ GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # --- Handle dynamic Google credentials from environment variable --- #
-google_json = os.getenv("GOOGLE_SHEET_JSON") or os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
-if google_json:
-    try:
-        # Parse to ensure it's valid JSON
-        parsed_credentials = json.loads(google_json)
+import json  # <-- Make sure this is at the top of your file
 
-        # Write back to file in proper JSON format
-        with open("credentials.json", "w") as f:
-            json.dump(parsed_credentials, f)
+google_json = os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"]
+parsed_credentials = json.loads(google_json)
 
-        CREDENTIALS_PATH = "credentials.json"
-    except json.JSONDecodeError as e:
-        raise ValueError("The GOOGLE_SHEET_JSON environment variable contains invalid JSON.") from e
-else:
-    raise ValueError("Missing GOOGLE_SHEET_JSON or GOOGLE_SERVICE_ACCOUNT_JSON environment variable")
+with open("credentials.json", "w") as f:
+    json.dump(parsed_credentials, f)
+
+CREDENTIALS_PATH = "credentials.json"
 
 # --- Setup logging --- #
 logging.basicConfig(level=logging.INFO)
