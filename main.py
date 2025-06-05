@@ -26,8 +26,16 @@ API_HASH = os.getenv("API_HASH")
 PHONE_NUMBER = os.getenv("PHONE_NUMBER")
 GROUP_ID = int(os.getenv("PRIVATE_GROUP_ID"))
 GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
-CREDENTIALS_PATH = os.getenv("GOOGLE_SHEET_CREDENTIALS")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+# --- Handle dynamic Google credentials from environment variable --- #
+google_json = os.getenv("GOOGLE_SHEET_JSON")
+if google_json:
+    with open("credentials.json", "w") as f:
+        f.write(google_json)
+    CREDENTIALS_PATH = "credentials.json"
+else:
+    raise ValueError("Missing GOOGLE_SHEET_JSON environment variable")
 
 # --- Setup logging --- #
 logging.basicConfig(level=logging.INFO)
