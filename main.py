@@ -21,6 +21,10 @@ from threading import Thread
 # --- Load environment variables --- #
 load_dotenv()
 
+# Debug check: Is the session file here?
+print("📂 Files in project root:", os.listdir("."))
+print("📁 Does my_session.session exist?", os.path.exists("my_session.session"))
+
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 PHONE_NUMBER = os.getenv("PHONE_NUMBER")
