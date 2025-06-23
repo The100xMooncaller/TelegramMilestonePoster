@@ -77,9 +77,25 @@ SESSION_STRING = os.getenv("SESSION_STRING")  # New simplified variable
 
 if not SESSION_STRING:
     raise ValueError("SESSION_STRING not set in environment.")
+from telethon.sessions import StringSession
+
+# Try to load SESSION_STRING from env
+SESSION_STRING = os.getenv("SESSION_STRING")
+
+# Optional fallback to session_b64.txt (for local use)
+if not SESSION_STRING:
+    b64_path = "session_b64.txt"
+    if os.path.exists(b64_path):
+        with open(b64_path, "r") as f:
+            try:
+                SESSION_STRING = base64.b64decode(f.read().strip()).decode()
+                logger.info("✅ Loaded SESSION_STRING from session_b64.txt")
+            except Exception as e:
+                logger.error(f"❌ Failed to decode session_b64.txt: {e}")
+    if not SESSION_STRING:
+        raise ValueError("❌ SESSION_STRING not set and no session_b64.txt fallback found.")
 
 client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
-
 
 # --- Keep-Alive Web Server for Replit + UptimeRobot ---
 app = Flask('')
