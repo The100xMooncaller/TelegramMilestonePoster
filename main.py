@@ -31,6 +31,7 @@ GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
 CREDENTIALS_PATH = os.getenv("GOOGLE_SHEET_CREDENTIALS")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
+PUBLIC_CHANNEL = os.getenv("PUBLIC_CHANNEL", "@solana100xcall")  # default for local tests
 DEX_API_BASE = "https://api.dexscreener.com/latest/dex/tokens/"
 PREFERRED_DEXES = ["raydium", "pumpfun", "bonkswap", "orca", "lifinity", "meteora"]
 
