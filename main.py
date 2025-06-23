@@ -33,7 +33,7 @@ GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
 CREDENTIALS_PATH = os.getenv("GOOGLE_SHEET_CREDENTIALS")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-PUBLIC_CHANNEL = "@solana100xcall"
+PUBLIC_CHANNEL = "@solana100xcalltest"
 DEX_API_BASE = "https://api.dexscreener.com/latest/dex/tokens/"
 PREFERRED_DEXES = ["raydium", "pumpfun", "bonkswap", "orca", "lifinity", "meteora"]  
 
@@ -67,6 +67,13 @@ scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 creds = Credentials.from_service_account_file(CREDENTIALS_PATH, scopes=scopes)
 gs = gspread.authorize(creds)
 sheet = gs.open_by_key(GOOGLE_SHEET_ID).sheet1
+# --- Restore session from base64 env var on Render --- #
+if not os.path.exists("my_session.session") and os.getenv("SESSION_B64"):
+    print("📦 Restoring session from base64...")
+    import base64
+    session_data = base64.b64decode(os.getenv("SESSION_B64"))
+    with open("my_session.session", "wb") as f:
+        f.write(session_data)
 
 # --- Telethon client --- #
 client = TelegramClient("my_session", API_ID, API_HASH)
