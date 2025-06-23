@@ -52,8 +52,11 @@ def decode_session():
 
 decode_session()
 
-client = TelegramClient("my_session", API_ID, API_HASH)
+from telethon.sessions import StringSession
 
+SESSION_B64 = os.getenv("SESSION_B64")  # make sure this is in your environment on Render
+
+client = TelegramClient(StringSession(base64.b64decode(SESSION_B64).decode()), API_ID, API_HASH)
 # Initialize bot
 bot = Bot(token=BOT_TOKEN)
 
@@ -80,16 +83,15 @@ scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 creds = Credentials.from_service_account_file(CREDENTIALS_PATH, scopes=scopes)
 gs = gspread.authorize(creds)
 sheet = gs.open_by_key(GOOGLE_SHEET_ID).sheet1
-# --- Restore session from base64 env var on Render --- #
-if not os.path.exists("my_session.session") and os.getenv("SESSION_B64"):
-    print("📦 Restoring session from base64...")
-    import base64
-    session_data = base64.b64decode(os.getenv("SESSION_B64"))
-    with open("my_session.session", "wb") as f:
-        f.write(session_data)
+from telethon.sessions import StringSession
 
-# --- Telethon client --- #
-client = TelegramClient("my_session", API_ID, API_HASH)
+SESSION_STRING = os.getenv("SESSION_STRING")  # New simplified variable
+
+if not SESSION_STRING:
+    raise ValueError("SESSION_STRING not set in environment.")
+
+client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
+
 
 # --- Keep-Alive Web Server for Replit + UptimeRobot ---
 app = Flask('')
