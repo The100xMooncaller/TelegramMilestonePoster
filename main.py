@@ -38,26 +38,14 @@ PREFERRED_DEXES = ["raydium", "pumpfun", "bonkswap", "orca", "lifinity", "meteor
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def decode_session():
-    base64_path = "session_b64.txt"
-    session_path = "my_session.session"
-    if os.path.exists(base64_path):
-        with open(base64_path, "r") as f:
-            b64_content = f.read()
-        with open(session_path, "wb") as f:
-            f.write(base64.b64decode(b64_content))
-        logger.info(f"Decoded session file written to {session_path}")
-    else:
-        logger.warning(f"Base64 session file {base64_path} not found. Using existing session file if available.")
-
-decode_session()
-
 from telethon.sessions import StringSession
 
-SESSION_B64 = os.getenv("SESSION_B64")  # make sure this is in your environment on Render
+# Try to load session string from environment
+SESSION_STRING = os.getenv("SESSION_STRING")
 
-client = TelegramClient(StringSession(base64.b64decode(SESSION_B64).decode()), API_ID, API_HASH)
-# Initialize bot
+# Create Telethon client
+client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
+
 bot = Bot(token=BOT_TOKEN)
 
 ROTATING_LINK_CAPTIONS = [
