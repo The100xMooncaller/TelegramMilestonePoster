@@ -1,5 +1,9 @@
-media/ 
-.git 
-__pycache__/ 
-*.pyc 
-.venv/ 
+# Ignore media and unnecessary folders
+media/
+.git/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+.env

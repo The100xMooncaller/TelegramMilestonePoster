@@ -1,20 +1,14 @@
-# Use official Python 3.11 slim image
 FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
-# Copy only requirements first to leverage Docker layer caching
+# Install dependencies early to cache
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Upgrade pip and install dependencies
-RUN pip install --upgrade pip && pip install -r requirements.txt
-
-# Now copy the rest of the app files
+# Copy rest of the bot code
 COPY . .
 
-# Expose Flask port if your app uses Flask (optional, since it's a background worker)
-EXPOSE 8080
-
-# Start the bot
+# Default command
 CMD ["python3", "main.py"]
