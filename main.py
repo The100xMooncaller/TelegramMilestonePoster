@@ -119,12 +119,10 @@ sent_milestones = set()
 # Send regular text message with inline buttons
 async def send_bot_message(text, buttons):
     loop = asyncio.get_event_loop()
-    gif_path = get_milestone_gif_path(ath_x)
+    reply_markup = InlineKeyboardMarkup(buttons)  # ✅ THIS FIXES THE BUG
 
     try:
         logger.info(f"Sending message to chat_id: {PUBLIC_CHANNEL}")
-        logger.info(f"chat_id type: {type(PUBLIC_CHANNEL)}")
-
         await loop.run_in_executor(
             None,
             partial(
@@ -139,6 +137,7 @@ async def send_bot_message(text, buttons):
         logger.info("✅ Message sent.")
     except Exception as e:
         logger.error(f"❌ Failed to send bot message: {e}")
+
 
 # Get GIF path based on milestone value (e.g., 3.5 → X3+.gif)
 def get_milestone_gif_path(x_value):
