@@ -18,13 +18,10 @@ import gspread
 from google.oauth2.service_account import Credentials
 from flask import Flask
 from threading import Thread
+import base64
 
 # --- Load environment variables --- #
 load_dotenv()
-
-# Debug check: Is the session file here?
-print("📂 Files in project root:", os.listdir("."))
-print("📁 Does my_session.session exist?", os.path.exists("my_session.session"))
 
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
@@ -34,13 +31,25 @@ GOOGLE_SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
 CREDENTIALS_PATH = os.getenv("GOOGLE_SHEET_CREDENTIALS")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-PUBLIC_CHANNEL = "@solana100xcalltest"
-DEX_API_BASE = "https://api.dexscreener.com/latest/dex/tokens/"
-PREFERRED_DEXES = ["raydium", "pumpfun", "bonkswap", "orca", "lifinity", "meteora"]  
-
 # --- Setup logging --- #
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def decode_session():
+    base64_path = "session_b64.txt"
+    session_path = "my_session.session"
+    if os.path.exists(base64_path):
+        with open(base64_path, "r") as f:
+            b64_content = f.read()
+        with open(session_path, "wb") as f:
+            f.write(base64.b64decode(b64_content))
+        logger.info(f"Decoded session file written to {session_path}")
+    else:
+        logger.warning(f"Base64 session file {base64_path} not found. Using existing session file if available.")
+
+decode_session()
+
+client = TelegramClient("my_session", API_ID, API_HASH)
 
 # Initialize bot
 bot = Bot(token=BOT_TOKEN)
