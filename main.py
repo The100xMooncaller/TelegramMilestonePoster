@@ -68,7 +68,6 @@ scopes = ["https://www.googleapis.com/auth/spreadsheets"]
 creds = Credentials.from_service_account_file(CREDENTIALS_PATH, scopes=scopes)
 gs = gspread.authorize(creds)
 sheet = gs.open_by_key(GOOGLE_SHEET_ID).sheet1
-
 # --- Restore session from base64 env var on Render --- #
 if not os.path.exists("my_session.session") and os.getenv("SESSION_B64"):
     print("📦 Restoring session from base64...")
@@ -101,7 +100,7 @@ sent_milestones = set()
 # Send regular text message with inline buttons
 async def send_bot_message(text, buttons):
     loop = asyncio.get_event_loop()
-    reply_markup = InlineKeyboardMarkup(buttons)
+    gif_path = get_milestone_gif_path(ath_x)
 
     try:
         logger.info(f"Sending message to chat_id: {PUBLIC_CHANNEL}")
@@ -178,19 +177,18 @@ async def send_bot_milestone_message(symbol, call_mc, ath_mc, chain, ath_x):
             milestone_db[symbol] = ath_x  # Save milestone even if fallback
             return
 
-        # Send animation - Fixed file handling
-        with open(gif_path, "rb") as gif_file:
-            await loop.run_in_executor(
-                None,
-                partial(
-                    bot.send_animation,
-                    chat_id=PUBLIC_CHANNEL,
-                    animation=gif_file,
-                    caption=caption,
-                    parse_mode="HTML",
-                    reply_markup=reply_markup
-                )
+        # Send animation
+        await loop.run_in_executor(
+            None,
+            partial(
+                bot.send_animation,
+                chat_id=PUBLIC_CHANNEL,
+                animation=open(gif_path, "rb"),
+                caption=caption,
+                parse_mode="HTML",
+                reply_markup=reply_markup
             )
+        )
         logger.info(f"✅ Milestone animation sent for {symbol} ({ath_x}x) - Path: {gif_path}")
 
         # Save new milestone
