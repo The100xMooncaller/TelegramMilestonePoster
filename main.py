@@ -118,21 +118,16 @@ sent_milestones = set()
 
 # Send regular text message with inline buttons
 async def send_bot_message(text, buttons):
-    loop = asyncio.get_event_loop()
-    reply_markup = InlineKeyboardMarkup(buttons)  # ✅ THIS FIXES THE BUG
+    reply_markup = InlineKeyboardMarkup(buttons)  # ✅ Build markup safely
 
     try:
         logger.info(f"Sending message to chat_id: {PUBLIC_CHANNEL}")
-        await loop.run_in_executor(
-            None,
-            partial(
-                bot.send_message,
-                chat_id=PUBLIC_CHANNEL,
-                text=text,
-                parse_mode="HTML",
-                reply_markup=reply_markup,
-                disable_web_page_preview=True
-            )
+        await bot.send_message(
+            chat_id=PUBLIC_CHANNEL,
+            text=text,
+            parse_mode="HTML",
+            reply_markup=reply_markup,
+            disable_web_page_preview=True
         )
         logger.info("✅ Message sent.")
     except Exception as e:
