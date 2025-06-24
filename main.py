@@ -50,15 +50,21 @@ client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
 bot = Bot(token=BOT_TOKEN)
 
 ROTATING_LINK_CAPTIONS = [
-    "🤑 300 Killer Wallets. Copy → Win.",
-    "🚨 Top 300 Solana Wallets. DAILY Printing.",
-    "🧠 Smart Money Printing. Keep going or stay poor.",
-    "🚀 It's happening NOW. Track the wallets.",
-    "💸 Non-stop wallet printing. Are you in or what?",
-    "👑 They print. You follow. You win.",
-    "🧠 Smarter wallets. It's silly not to follow.",
-    "🎯 Wallets that never run out. Yours now.",
-    "📈 Print like a pro. We have the file."
+    "🧠 $1M+ PnL Wallets. Follow the real winners.",
+    "🚀 Top 300 Smart Wallets. Printing daily on SOL.",
+    "📊 $100k+ Weekly Moves. Live, Unfiltered, Uncensored.",
+    "🤑 Snipers, Whales, Insiders. Cop what they do.",
+    "🔥 AI-Picked Wallets. You just follow the money.",
+    "💎 Wallets that hit 10x before X. Again and again.",
+    "⚡ Real-time Alpha from 300 Killer Wallets.",
+    "🎯 Track what the $1M+ wallets buy before CT wakes up.",
+    "👀 Missed the last 20x? They're already on the next one.",
+    "📈 Tap in or stay poor. Solana never sleeps.",
+    "🔓 Uncage Alpha. These wallets don’t miss.",
+    "💰 CT is late. These wallets bought hours ago.",
+    "🧠 Outperform the market — follow smarter wallets.",
+    "⛽️ Don’t guess. Track what’s *already* printing.",
+    "🥷 Trade like the wallets that make $100k/week.",
 ]
 
 # Milestone tracking: stores last ATH per token
@@ -163,7 +169,7 @@ async def send_bot_milestone_message(symbol, call_mc, ath_mc, chain, ath_x):
         f"🟢 Bot Called It at: <b>{abbreviate_number(int(call_mc))}</b> MC\n"
         f"📈 ATH: <b>{abbreviate_number(int(ath_mc))}</b> | Chain: {chain.capitalize()}",
         "<blockquote>🔓 Get Access to Solana's #1 Memecoin Signals Bot & Catch the Next 10x–100x Before the Crowd 💸</blockquote>",
-        f"<a href='https://t.me/SmartWalletsSOLBot'>{rotating_link_text}</a>"
+        f"<a href='https://whop.com/solana100xcall-smartwallets-300'>{rotating_link_text}</a>"
     ]
     if is_update:
         caption_parts.insert(0, "🔥UPDATE🔥")
