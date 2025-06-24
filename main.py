@@ -168,13 +168,12 @@ async def send_bot_milestone_message(symbol, call_mc, ath_mc, chain, ath_x):
     if is_update:
         caption_parts.insert(0, "🔥UPDATE🔥")
 
-        caption = "\n\n".join(caption_parts)
+    caption = "\n\n".join(caption_parts)  # ✅ define BEFORE try
 
     try:
         if not os.path.exists(gif_path):
             logger.warning(f"⚠️ Animation not found for {symbol} ({ath_x:.1f}x). Sending fallback text message.")
 
-            # Fallback text message
             fallback_parts = [
                 headline,
                 f"🟢 Bot Called It at: <b>{abbreviate_number(int(call_mc))}</b> MC",
@@ -190,7 +189,6 @@ async def send_bot_milestone_message(symbol, call_mc, ath_mc, chain, ath_x):
             milestone_db[symbol] = ath_x
             return
 
-        # ✅ Send animation properly
         with open(gif_path, "rb") as gif_file:
             await bot.send_animation(
                 chat_id=PUBLIC_CHANNEL,
@@ -205,6 +203,7 @@ async def send_bot_milestone_message(symbol, call_mc, ath_mc, chain, ath_x):
     except Exception as e:
         logger.error(f"❌ Failed to send milestone animation for {symbol} ({ath_x:.1f}x): {e}")
         logger.warning("⚠️ Falling back to text message.")
+        await send_bot_message(caption, buttons)
 
 # --- Helper function to extract token info --- #
 def normalize_call_mc(mc_str):
