@@ -49,22 +49,17 @@ client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
 
 bot = Bot(token=BOT_TOKEN)
 
-ROTATING_LINK_CAPTIONS = [
-    "🧠 $1M+ PnL Wallets. Follow the real winners.",
-    "🚀 Top 300 Smart Wallets. Printing daily on SOL.",
-    "📊 $100k+ Weekly Moves. Live, Unfiltered, Uncensored.",
-    "🤑 Snipers, Whales, Insiders. Cop what they do.",
-    "🔥 AI-Picked Wallets. You just follow the money.",
-    "💎 Wallets that hit 10x before X. Again and again.",
-    "⚡ Real-time Alpha from 300 Killer Wallets.",
-    "🎯 Track what the $1M+ wallets buy before CT wakes up.",
-    "👀 Missed the last 20x? They're already on the next one.",
-    "📈 Tap in or stay poor. Solana never sleeps.",
-    "🔓 Uncage Alpha. These wallets don’t miss.",
-    "💰 CT is late. These wallets bought hours ago.",
-    "🧠 Outperform the market — follow smarter wallets.",
-    "⛽️ Don’t guess. Track what’s *already* printing.",
-    "🥷 Trade like the wallets that make $100k/week.",
+ROTATING_PROMO_LINES = [
+    "<blockquote>🔓 Get Access to Solana's #1 Memecoin Signals Bot\nCatch the Next 10x–100x Before the Crowd 💸</blockquote>",
+    "<blockquote>🚀 Join the Bot Trusted by Solana Degens\nNext Call Could Be Your 50x</blockquote>",
+    "<blockquote>📈 Real-Time Memecoin Signals\nBefore the Hype, Before the Crowd</blockquote>",
+    "<blockquote>💰 Premium Alpha Drops Daily\nSnipers Are Already In</blockquote>",
+    "<blockquote>🎯 Spot the Next 100x Early\nOur Bot Already Did</blockquote>",
+    "<blockquote>🥇 Solana’s Smartest Signals\nBuilt by Traders, for Traders</blockquote>",
+    "<blockquote>⚡️ Don’t Chase Pumps\nCatch the Next One First</blockquote>",
+    "<blockquote>📊 Alpha That Prints\nJust Tap In</blockquote>",
+    "<blockquote>🧠 Outsmart the Market\nThe Bot Is Already On It</blockquote>",
+    "<blockquote>🔥 Next 10x Gem Is Loading\nWill You Catch It?</blockquote>"
 ]
 
 # Milestone tracking: stores last ATH per token
@@ -147,7 +142,6 @@ def get_milestone_gif_path(x_value):
 
 # Send milestone GIF + caption + button
 async def send_bot_milestone_message(symbol, call_mc, ath_mc, chain, ath_x):
-    # Determine if this is an update
     previous_ath = milestone_db.get(symbol)
     is_update = previous_ath is not None and ath_x > previous_ath
 
@@ -160,37 +154,26 @@ async def send_bot_milestone_message(symbol, call_mc, ath_mc, chain, ath_x):
     ]
     reply_markup = InlineKeyboardMarkup(buttons)
 
-    rotating_link_text = random.choice(ROTATING_LINK_CAPTIONS)
     headline = f"${symbol} HIT 💎{ath_x:.1f}X💎 AFTER CALL"
+    promo_line = random.choice(ROTATING_PROMO_LINES)
 
-    # Build caption with proper line breaks
     caption_parts = [
         headline,
-        f"🟢 Bot Called It at: <b>{abbreviate_number(int(call_mc))}</b> MC\n"
+        f"🟢 The Bot Called It At: <b>{abbreviate_number(int(call_mc))}</b> MC\n"
         f"📈 ATH: <b>{abbreviate_number(int(ath_mc))}</b> | Chain: {chain.capitalize()}",
-        "<blockquote>🔓 Get Access to Solana's #1 Memecoin Signals Bot & Catch the Next 10x–100x Before the Crowd 💸</blockquote>",
-        f"<a href='https://whop.com/solana100xcall-smartwallets-300'>{rotating_link_text}</a>"
+        promo_line
     ]
+
     if is_update:
         caption_parts.insert(0, "🔥UPDATE🔥")
 
-    caption = "\n\n".join(caption_parts)  # ✅ define BEFORE try
+    caption = "\n\n".join(caption_parts)
 
     try:
         if not os.path.exists(gif_path):
             logger.warning(f"⚠️ Animation not found for {symbol} ({ath_x:.1f}x). Sending fallback text message.")
 
-            fallback_parts = [
-                headline,
-                f"🟢 Bot Called It at: <b>{abbreviate_number(int(call_mc))}</b> MC",
-                f"📈 ATH: <b>{abbreviate_number(int(ath_mc))}</b> | Chain: {chain.capitalize()}",
-                "<blockquote>🔓 Get Access to Solana's #1 Memecoin Signals Bot & Catch the Next 10x–100x Before the Crowd 💸</blockquote>",
-                "<a href='https://t.me/SmartWalletsSOLBot'>📊 ADD 300 alpha wallets to your Solana tracker</a>"
-            ]
-            if is_update:
-                fallback_parts.insert(0, "🔥UPDATE🔥")
-
-            fallback_message = "\n\n".join(fallback_parts)
+            fallback_message = "\n\n".join(caption_parts)
             await send_bot_message(fallback_message, buttons)
             milestone_db[symbol] = ath_x
             return
